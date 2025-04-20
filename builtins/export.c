@@ -158,7 +158,7 @@ int export(t_env **head, char **env, int i)
     {
         for (int i = 0; env[i]; i++)
         {
-            t_env *node = malloc(sizeof(t_env));
+            t_env *node = ft_malloc(sizeof(t_env));
             stack_env(head, node, env[i]);
         }
     }

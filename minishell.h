@@ -42,7 +42,7 @@ typedef struct
 } t_command;
 
 void	*ft_malloc(ssize_t len);
-int cd(char **str, int size);
+int cd(t_env **e, char **str, int size);
 int export(t_env **head, char **env, int i);
 int ft_env(t_env *head);
 int unset(t_env **head, char **str);

@@ -97,10 +97,98 @@ char* ft_path(int status)
     return s.prompt;
 }
 
-int main(int ac, char **av, char **env)
+char** add_string_on_the_head_of_double_array(char *arr1, char **arr2)
 {
-    (void)ac;
-    (void)av;
+    int i = 0;
+    while (arr2[i])
+        i++;
+    char **new_arr = ft_malloc(sizeof(char *) * (i + 2));
+    new_arr[0] = ft_strdup(arr1);
+    for (int j = 0; j < i; j++)
+        new_arr[j + 1] = ft_strdup(arr2[j]);
+    new_arr[i + 1] = NULL;
+    return new_arr;
+}
+
+char *get_path(char *cmd, char **env)
+{
+    char *path = NULL;
+    char *path_env = NULL;
+    char *temp = NULL;
+    char **paths = NULL;
+
+    if (access(cmd, X_OK) == 0)
+        return ft_strdup(cmd);
+    for (int i = 0; env[i]; i++)
+    {
+        if (ft_strncmp(env[i], "PATH=", 5) == 0)
+        {
+            path_env = env[i] + 5;
+            break;
+        }
+    }
+
+    if (path_env)
+    {
+        paths = ft_split(path_env, ':');
+        for (int i = 0; paths[i]; i++)
+        {
+            temp = ft_strjoin(paths[i], "/");
+            path = ft_strjoin(temp, cmd);
+            if (access(path, X_OK) == 0)
+                break;
+        }
+    }
+    if(access(path, X_OK) != 0)
+    {
+        return NULL;
+    }
+    return path;
+}
+
+int ft_execve(char *cmd, char **params, char **env)
+{
+    int pid = fork();
+    char **str;
+    int status;
+
+    if (pid == 0)
+    {
+        char *path = get_path(cmd, env);
+        if (!path)
+        {
+            fprintf(stderr, "Command not found: %s\n", cmd);
+            return 127;
+        }
+        str = add_string_on_the_head_of_double_array(cmd, params);
+        execve(path, str, env);
+        perror("execve");
+        exit(1);
+    }
+    else if (pid < 0)
+    {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    else{
+        wait(&status);
+        if (WIFEXITED(status))
+            return WEXITSTATUS(status);
+        return 1;
+    }
+}
+
+void add_old_pwd(t_env **e)
+{
+    char **old_pwd = NULL;
+    old_pwd = ft_malloc(sizeof(char *) * 2);
+    old_pwd[0] = ft_strdup("OLDPWD");
+    old_pwd[1] = NULL;
+    export(e, old_pwd, 1);
+}
+
+int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char **env)
+{
     char *line = NULL;
     int status = 0;
     write(1, "\033[H\033[J", 6);
@@ -109,13 +197,18 @@ int main(int ac, char **av, char **env)
     cmd.params = NULL;
     t_env *e = NULL;
     export(&e, env, 1);
+    add_old_pwd(&e);
     char *s;
     while (1)
     {
         s = ft_path(status);
         line = readline(s);
         if (!line)
-            break;
+		{
+			write (1, " exit\n", 6);
+			ft_malloc(-1);
+			exit(0);
+		}
         cmd = parse_command(line);
         if (cmd.command == NULL)
             continue;
@@ -133,14 +226,15 @@ int main(int ac, char **av, char **env)
         }
         else if (ft_strncmp(cmd.command, "cd", 2) == 0 && strlen(cmd.command) == 2)
         {
-            status = cd(cmd.params, count_params(line));
+            status = cd(&e, cmd.params, count_params(line));
         }
         else if (ft_strncmp(cmd.command, "pwd", 3) == 0 && strlen(cmd.command) == 3)
         {
             status = pwd();
         }
-        else
-            status = 1;
+        else{
+            status = ft_execve(cmd.command, cmd.params, env);
+        }
     }
     return 0;
 }

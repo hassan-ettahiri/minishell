@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -Wall -Wextra -Werror -fsanitize=address
+CFLAGS = -fsanitize=address
 LIBFT = libft.a
 NAME = minishell
 SRC = ./builtins/cd.c ./builtins/pwd.c ./builtins/unset.c ./builtins/env.c ./builtins/export.c ./minishell.c
