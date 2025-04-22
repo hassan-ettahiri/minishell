@@ -53,17 +53,15 @@ void handel_pipes(t_env **e, t_pipeline pipe, char **env)
         else if (fd.i == pipe.count - 1)
             redlast(&fd);
         else
-        {
             rbetween(&fd);
-        }
         child = fork();
         if (child == 0)
             pipe_execution(&fd, pipe, env, e);
         
         if (fd.i != 0)
             close(fd.in);
-        /*if (fd.i != pipe.count - 1)
-            close(fd.out);*/
+        if (fd.i != pipe.count - 1)
+            close(fd.out);
         fd.i++;
     }
     while( wait(NULL) == -1)
