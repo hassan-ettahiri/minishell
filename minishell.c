@@ -1,5 +1,18 @@
 #include "minishell.h"
 
+void print_array(char **arr)
+{
+    if (!arr)
+    {
+        printf("9liwattt f tableau\n");
+        return;
+    }
+    for (size_t i = 0; arr[i]; i++)
+    {
+        printf("[%s]\n", arr[i]);
+    }
+}
+
 int count_params(char *input)
 {
     int count = 0;
@@ -15,51 +28,70 @@ int count_params(char *input)
     return count;
 }
 
-t_command parse_command(char *input)
+char *strdup_safe(const char *s)
 {
-    t_command cmd;
-    cmd.command = NULL;
-    cmd.params = NULL;
+    char *d = malloc(strlen(s) + 1);
+    if (d)
+        strcpy(d, s);
+    return d;
+}
 
-    char *copy = ft_strdup(input);
-    if (!copy)
-        return cmd;
+void trim(char *str)
+{
+    char *end;
+    while (isspace((unsigned char)*str))
+        str++;
+    if (*str == 0)
+        return;
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end))
+        end--;
+    *(end + 1) = 0;
+}
 
-    int count = 0;
-    char *token = strtok(copy, " ");
-    if (!token)
+void parse_input(const char *input, t_pipeline *pipeline)
+{
+    char *input_copy = strdup_safe(input);
+    char *rest = input_copy;
+    char *segment;
+    int cmd_index = 0;
+
+    while ((segment = strsep(&rest, "|")) != NULL && cmd_index < MAX_COMMANDS)
     {
-        return cmd;
+        trim(segment);
+
+        t_command *cmd = &pipeline->commands[cmd_index];
+        char *arg_rest = segment;
+        char *arg;
+        int param_index = 0;
+
+        // Skip empty tokens until we find the command
+        while ((arg = strsep(&arg_rest, " \t")) != NULL)
+        {
+            if (*arg == '\0')
+                continue;
+            cmd->command = strdup_safe(arg);
+            break;
+        }
+
+        // The rest are parameters
+        while ((arg = strsep(&arg_rest, " \t")) != NULL)
+        {
+            if (*arg == '\0')
+                continue;
+            if (param_index < MAX_ARGS)
+            {
+                cmd->params[param_index++] = strdup_safe(arg);
+            }
+        }
+
+        cmd->params[param_index] = NULL;
+        cmd->argc = param_index;
+        cmd_index++;
     }
 
-    cmd.command = ft_strdup(token);
-
-    char *param_start = copy + ft_strlen(token) + 1;
-    char *param_copy = ft_strdup(param_start);
-    if (!param_copy)
-    {
-        return cmd;
-    }
-
-    token = strtok(param_copy, " ");
-    while (token)
-    {
-        count++;
-        token = strtok(NULL, " ");
-    }
-
-    cmd.params = ft_malloc(sizeof(char *) * (count + 1));
-    int i = 0;
-    char *param_copy_1 = ft_strdup(param_start);
-    token = strtok(param_copy_1, " ");
-    while (token)
-    {
-        cmd.params[i++] = ft_strdup(token);
-        token = strtok(NULL, " ");
-    }
-    cmd.params[i] = NULL;
-
-    return cmd;
+    pipeline->count = cmd_index;
+    free(input_copy);
 }
 
 char *get_last_dir()
@@ -79,7 +111,7 @@ char *get_last_dir()
     return last_dir;
 }
 
-char* ft_path(int status)
+char *ft_path(int status)
 {
     t_design s;
 
@@ -97,16 +129,23 @@ char* ft_path(int status)
     return s.prompt;
 }
 
-char** add_string_on_the_head_of_double_array(char *arr1, char **arr2)
+char **add_string_on_the_head_of_double_array(char *arr1, char **arr2)
 {
-    int i = 0;
+    int i;
+    int j;
+
+    j = 0;
+    i = 0;
     while (arr2[i])
         i++;
     char **new_arr = ft_malloc(sizeof(char *) * (i + 2));
     new_arr[0] = ft_strdup(arr1);
-    for (int j = 0; j < i; j++)
+    while (j < i)
+    {
         new_arr[j + 1] = ft_strdup(arr2[j]);
-    new_arr[i + 1] = NULL;
+        j++;
+    }
+    new_arr[j + 1] = NULL;
     return new_arr;
 }
 
@@ -118,7 +157,13 @@ char *get_path(char *cmd, char **env)
     char **paths = NULL;
 
     if (access(cmd, X_OK) == 0)
+    {
+        if (ft_strncmp(cmd, "..", 2) == 0 && ft_strlen(cmd) == 2)
+        {
+            return NULL;
+        }
         return ft_strdup(cmd);
+    }
     for (int i = 0; env[i]; i++)
     {
         if (ft_strncmp(env[i], "PATH=", 5) == 0)
@@ -139,7 +184,7 @@ char *get_path(char *cmd, char **env)
                 break;
         }
     }
-    if(access(path, X_OK) != 0)
+    if (access(path, X_OK) != 0)
     {
         return NULL;
     }
@@ -149,7 +194,7 @@ char *get_path(char *cmd, char **env)
 int ft_execve(char *cmd, char **params, char **env)
 {
     int pid = fork();
-    char **str;
+    char **str = NULL;
     int status;
 
     if (pid == 0)
@@ -170,12 +215,29 @@ int ft_execve(char *cmd, char **params, char **env)
         perror("fork");
         exit(EXIT_FAILURE);
     }
-    else{
+    else
+    {
         wait(&status);
         if (WIFEXITED(status))
             return WEXITSTATUS(status);
         return 1;
     }
+}
+
+int ft_execve_with_pipes(char *cmd, char **params, char **env)
+{
+    char **str = NULL;
+
+    char *path = get_path(cmd, env);
+    if (!path)
+    {
+        fprintf(stderr, "Command not found: %s\n", cmd);
+        return 127;
+    }
+    str = add_string_on_the_head_of_double_array(cmd, params);
+    execve(path, str, env);
+    perror("execve");
+    exit(1);
 }
 
 void add_old_pwd(t_env **e)
@@ -187,54 +249,72 @@ void add_old_pwd(t_env **e)
     export(e, old_pwd, 1);
 }
 
+int commands(t_env **e, t_pipeline pipe, char **env, int flag)
+{
+    int status = 0;
+
+    if (pipe.commands[0].command == NULL)
+        return 0;
+    if (ft_strncmp(pipe.commands[0].command, "env", 3) == 0 && strlen(pipe.commands[0].command) == 3)
+        status = ft_env(*e);
+    else if (ft_strncmp(pipe.commands[0].command, "export", 6) == 0 && strlen(pipe.commands[0].command) == 6)
+        status = export(e, pipe.commands[0].params, pipe.commands[0].argc);
+    else if (ft_strncmp(pipe.commands[0].command, "unset", 5) == 0 && strlen(pipe.commands[0].command) == 5)
+        status = unset(e, pipe.commands[0].params);
+    else if (ft_strncmp(pipe.commands[0].command, "cd", 2) == 0 && strlen(pipe.commands[0].command) == 2)
+        status = cd(e, pipe.commands[0].params, pipe.commands[0].argc);
+    else if (ft_strncmp(pipe.commands[0].command, "pwd", 3) == 0 && strlen(pipe.commands[0].command) == 3)
+        status = pwd(*e);
+    // else if (pipe.commands[0].command[0] == '$')
+    //     status = dollar(e, cmd, line, env);
+    else
+    {
+        if (flag == -1)
+            status = ft_execve(pipe.commands[0].command, pipe.commands[0].params, env);
+        else
+            status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env);
+    }
+    return status;
+}
+
+void sleeper(void)
+{
+    int i = 0;
+    while (i < SLEEP)
+        i++;
+}
+
 int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char **env)
 {
     char *line = NULL;
     int status = 0;
     write(1, "\033[H\033[J", 6);
-    t_command cmd;
-    cmd.command = NULL;
-    cmd.params = NULL;
+    t_pipeline pipe = {0};
     t_env *e = NULL;
+    char *s = NULL;
     export(&e, env, 1);
     add_old_pwd(&e);
-    char *s;
     while (1)
     {
+        sleeper();
         s = ft_path(status);
         line = readline(s);
         if (!line)
-		{
-			write (1, " exit\n", 6);
-			ft_malloc(-1);
-			exit(0);
-		}
-        cmd = parse_command(line);
-        if (cmd.command == NULL)
-            continue;
-        if (ft_strncmp(cmd.command, "env", 3) == 0 && strlen(cmd.command) == 3)
         {
-            status = ft_env(e);
+            write(1, " exit\n", 6);
+            ft_malloc(-1);
+            exit(0);
         }
-        else if (ft_strncmp(cmd.command, "export", 6) == 0 && strlen(cmd.command) == 6)
+        parse_input(line, &pipe);
+        if (ft_strlen(line) != 0)
         {
-            status = export(&e, cmd.params, count_params(line));
+            add_history(line);
+            if (pipe.count == 1)
+                commands(&e, pipe, env, -1);
+            else
+                handel_pipes(&e, pipe, env);
         }
-        else if (ft_strncmp(cmd.command, "unset", 5) == 0 && strlen(cmd.command) == 5)
-        {
-            status = unset(&e, cmd.params);
-        }
-        else if (ft_strncmp(cmd.command, "cd", 2) == 0 && strlen(cmd.command) == 2)
-        {
-            status = cd(&e, cmd.params, count_params(line));
-        }
-        else if (ft_strncmp(cmd.command, "pwd", 3) == 0 && strlen(cmd.command) == 3)
-        {
-            status = pwd();
-        }
-        else{
-            status = ft_execve(cmd.command, cmd.params, env);
-        }
+        free(line);
     }
     return 0;
 }

@@ -152,9 +152,9 @@ void stack_env(t_env **head, t_env *node, char *env)
     }
 }
 
-int export(t_env **head, char **env, int i)
+int export(t_env **head, char **env, int size)
 {
-    if (i != 0)
+    if (size != 0)
     {
         for (int i = 0; env[i]; i++)
         {

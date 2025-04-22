@@ -1,8 +1,10 @@
 CC = cc
-CFLAGS = -fsanitize=address
+CFLAGS = -Wall -Wextra -Werror #-fsanitize=address
 LIBFT = libft.a
 NAME = minishell
-SRC = ./builtins/cd.c ./builtins/pwd.c ./builtins/unset.c ./builtins/env.c ./builtins/export.c ./minishell.c
+SRC =	./builtins/cd.c ./builtins/dollar.c ./builtins/pwd.c\
+		./builtins/unset.c ./builtins/env.c ./builtins/export.c ./minishell.c\
+		./pipe/pipe_handler.c
 OBJS = ${SRC:.c=.o}
 LIBFT_PATH = ./libft
 

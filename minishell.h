@@ -3,11 +3,19 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "libft/libft.h"
+#include <errno.h>
+#include <signal.h>
+
+#define MAX_ARGS 10
+#define MAX_COMMANDS 10
+#define SLEEP 10000000
 
 typedef struct s_design
 {
@@ -35,17 +43,45 @@ typedef struct s_gb
 	struct s_gb	*next;
 }t_gb;
 
-typedef struct
-{
+typedef struct {
     char *command;
-    char **params;
+    char *params[MAX_ARGS + 1];
+    int argc;
 } t_command;
 
+typedef struct {
+    t_command commands[MAX_COMMANDS];
+    int count;
+} t_pipeline;
+
+typedef struct
+{
+    int in;
+    int out;
+    int fdt;
+    int fds[2];
+    int i;
+}t_fd;
+
+
+void print_array(char **arr);
 void	*ft_malloc(ssize_t len);
 int cd(t_env **e, char **str, int size);
 int export(t_env **head, char **env, int i);
 int ft_env(t_env *head);
 int unset(t_env **head, char **str);
-int pwd();
+int dollar(t_env **e, t_command cmd, int line, char **env);
+int pwd(t_env *e);
+char *get_env_value(t_env *head, char *str);
+int count_params(char *input);
+t_command parse_command(char *input);
+char *get_last_dir();
+char *ft_path(int status);
+char **add_string_on_the_head_of_double_array(char *arr1, char **arr2);
+char *get_path(char *cmd, char **env);
+int ft_execve(char *cmd, char **params, char **env);
+void add_old_pwd(t_env **e);
+int commands(t_env **e, t_pipeline pipe, char **env, int flag);
+void handel_pipes(t_env **e, t_pipeline pipe, char **env);
 
 #endif
