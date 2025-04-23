@@ -199,11 +199,22 @@ int ft_execve(char *cmd, char **params, char **env)
 
     if (pid == 0)
     {
+        if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
+        {
+            if (access(cmd, X_OK) == 0)
+            {
+            }
+            else
+            {
+                printf("bash: %s: No such file or directory\n", cmd);
+                exit(127);
+            }
+        }
         char *path = get_path(cmd, env);
         if (!path)
         {
             fprintf(stderr, "Command not found: %s\n", cmd);
-            return 127;
+            exit(127);
         }
         str = add_string_on_the_head_of_double_array(cmd, params);
         execve(path, str, env);
@@ -228,11 +239,22 @@ int ft_execve_with_pipes(char *cmd, char **params, char **env)
 {
     char **str = NULL;
 
+    if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
+    {
+        if (access(cmd, X_OK) == 0)
+        {
+        }
+        else
+        {
+            printf("bash: %s: No such file or directory\n", cmd);
+            exit(127);
+        }
+    }
     char *path = get_path(cmd, env);
     if (!path)
     {
         fprintf(stderr, "Command not found: %s\n", cmd);
-        return 127;
+        exit(127);
     }
     str = add_string_on_the_head_of_double_array(cmd, params);
     execve(path, str, env);
@@ -305,7 +327,7 @@ char **set_defaults(t_env **e, int flag)
     defaults[2] = ft_strdup("SHLVL=1");
     defaults[3] = NULL;
 
-    export(e, defaults, flag); // make sure this is doing its job
+    export(e, defaults, flag);
 
     return defaults;
 }

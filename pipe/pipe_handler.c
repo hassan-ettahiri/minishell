@@ -2,10 +2,10 @@
 
 void redfirst(t_fd *fd)
 {
-    fd->in = open("/dev/stdin", O_RDONLY, 0777);
+    fd->in = dup(0);
     if (fd->in == -1)
         exit(1);
-    
+
     if (pipe(fd->fds) == -1)
         exit(1);
     fd->out = fd->fds[1];
@@ -29,13 +29,14 @@ void redlast(t_fd *fd)
 
 void pipe_execution(t_fd *fd, t_pipeline pipe, char **env, t_env **e)
 {
-    if(dup2(fd->in, STDIN_FILENO) == -1)
+    if (dup2(fd->in, STDIN_FILENO) == -1)
         dprintf(2, "failed to dup 1\n");
     if (dup2(fd->out, STDOUT_FILENO) == -1)
         dprintf(2, "failed to dup 2\n");
     close(fd->in);
     close(fd->out);
     commands(e, pipe, env, fd->i);
+    exit(1);
 }
 
 void handel_pipes(t_env **e, t_pipeline pipe, char **env)
@@ -43,8 +44,6 @@ void handel_pipes(t_env **e, t_pipeline pipe, char **env)
     t_fd fd;
     pid_t child;
     fd.i = 0;
-    fd.in = dup(0);
-    fd.out = dup(1);
 
     while (fd.i < pipe.count)
     {
@@ -57,14 +56,12 @@ void handel_pipes(t_env **e, t_pipeline pipe, char **env)
         child = fork();
         if (child == 0)
             pipe_execution(&fd, pipe, env, e);
-        
-        if (fd.i != 0)
-            close(fd.in);
-        if (fd.i != pipe.count - 1)
-            close(fd.out);
+
+        close(fd.in);
+        close(fd.out);
         fd.i++;
     }
-    while( wait(NULL) == -1)
+    while (wait(NULL) == -1)
         ;
     close(fd.fdt);
 }
