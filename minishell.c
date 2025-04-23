@@ -284,6 +284,64 @@ void sleeper(void)
         i++;
 }
 
+char **set_defaults(t_env **e, int flag)
+{
+    char **defaults;
+    char *getpwd;
+
+    defaults = ft_malloc(4 * sizeof(char *));
+    if (!defaults)
+        return NULL;
+
+    defaults[0] = ft_strdup("PATH=/virtualbox/bin:/virtualbox/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+
+    getpwd = getcwd(NULL, 0);
+    if (!getpwd)
+        getpwd = ft_strdup("/unknown");
+
+    defaults[1] = ft_strjoin("PWD=", getpwd);
+    free(getpwd);
+
+    defaults[2] = ft_strdup("SHLVL=1");
+    defaults[3] = NULL;
+
+    export(e, defaults, flag); // make sure this is doing its job
+
+    return defaults;
+}
+
+char **ft_copy_env(char **env)
+{
+    int i = 0;
+    char **copy;
+
+    if (env == NULL)
+        return NULL;
+    while (env[i])
+        i++;
+
+    copy = ft_malloc((i + 1) * sizeof(char *));
+    if (!copy)
+        return NULL;
+
+    i = 0;
+    while (env[i])
+    {
+        copy[i] = ft_strdup(env[i]);
+        i++;
+    }
+    copy[i] = NULL;
+    return copy;
+}
+
+char **ft_export(t_env **e, char **env, int flag)
+{
+    char **str;
+    export(e, env, flag);
+    str = ft_copy_env(env);
+    return str;
+}
+
 int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char **env)
 {
     char *line = NULL;
@@ -291,8 +349,12 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
     write(1, "\033[H\033[J", 6);
     t_pipeline pipe = {0};
     t_env *e = NULL;
+    char **copy_env;
     char *s = NULL;
-    export(&e, env, 1);
+    if (env[0] != NULL)
+        copy_env = ft_export(&e, env, 1);
+    else
+        copy_env = set_defaults(&e, 1);
     add_old_pwd(&e);
     while (1)
     {
@@ -310,9 +372,9 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
         {
             add_history(line);
             if (pipe.count == 1)
-                commands(&e, pipe, env, -1);
+                commands(&e, pipe, copy_env, -1);
             else
-                handel_pipes(&e, pipe, env);
+                handel_pipes(&e, pipe, copy_env);
         }
         free(line);
     }

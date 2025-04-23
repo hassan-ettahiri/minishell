@@ -13,7 +13,7 @@ int ft_splits(char ***s, char *str)
         {
             flag = 2;
             d++;
-            break ;
+            break;
         }
         else if (str[i] == '=')
         {
@@ -24,7 +24,7 @@ int ft_splits(char ***s, char *str)
             i++;
     }
     (*s)[0] = ft_substr((char const *)str, 0, i);
-    (*s)[1] = ft_substr((char const *)str, i + d +1, ft_strlen(str) - i - 1);
+    (*s)[1] = ft_substr((char const *)str, i + d + 1, ft_strlen(str) - i - 1);
     return flag;
 }
 
@@ -122,11 +122,11 @@ void stack_env(t_env **head, t_env *node, char *env)
     {
         if (strcmp(tmp->key, splits[0]) == 0)
         {
-            if(node->equl_exist == 2)
+            if (node->equl_exist == 2)
             {
                 tmp->value = ft_strjoin(tmp->value, splits[1]);
                 tmp->equl_exist = 1;
-                return ;
+                return;
             }
             if (node->equl_exist == 1)
             {
@@ -152,6 +152,24 @@ void stack_env(t_env **head, t_env *node, char *env)
     }
 }
 
+void print_export(char *s1, char *s2, int flag)
+{
+    if (flag == 1)
+    {
+        write(1, "declare -x ", 12);
+        write(1, s1, ft_strlen(s1));
+        write(1, "=\"",3);
+        write(1, s2, ft_strlen(s2));
+        write(1, "\"\n", 3);
+    }
+    else
+    {
+        write(1, "declare -x ", 12);
+        write(1, s1, ft_strlen(s1));
+        write(1, "\n", 1);
+    }
+}
+
 int export(t_env **head, char **env, int size)
 {
     if (size != 0)
@@ -169,10 +187,7 @@ int export(t_env **head, char **env, int size)
         t_env *t = copy;
         while (t)
         {
-            if (t->equl_exist == 1)
-                printf("declare -x %s=\"%s\"\n", t->key, t->value);
-            else
-                printf("declare -x %s\n", t->key);
+            print_export(t->key, t->value, t->equl_exist);
             t = t->next;
         }
     }
