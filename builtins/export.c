@@ -113,7 +113,7 @@ int check_special_car(char *str)
     return 0;
 }
 
-void stack_env(t_env **head, t_env *node, char *env)
+int stack_env(t_env **head, t_env *node, char *env)
 {
     char **splits = NULL;
     t_env *tmp = *head;
@@ -126,16 +126,16 @@ void stack_env(t_env **head, t_env *node, char *env)
             {
                 tmp->value = ft_strjoin(tmp->value, splits[1]);
                 tmp->equl_exist = 1;
-                return;
+                return 0;
             }
             if (node->equl_exist == 1)
             {
                 tmp->value = ft_strdup(splits[1]);
                 tmp->equl_exist = 1;
-                return;
+                return 0;
             }
             else
-                return;
+                return 0;
         }
         tmp = tmp->next;
     }
@@ -149,7 +149,9 @@ void stack_env(t_env **head, t_env *node, char *env)
     else
     {
         printf("minishell: export: `%s': not a valid identifier\n", env);
+        return 1;
     }
+    return 0;
 }
 
 void print_export(char *s1, char *s2, int flag)
@@ -172,12 +174,13 @@ void print_export(char *s1, char *s2, int flag)
 
 int export(t_env **head, char **env, int size)
 {
+    int status = 0;
     if (size != 0)
     {
         for (int i = 0; env[i]; i++)
         {
             t_env *node = ft_malloc(sizeof(t_env));
-            stack_env(head, node, env[i]);
+            status = stack_env(head, node, env[i]);
         }
     }
     else
@@ -191,5 +194,5 @@ int export(t_env **head, char **env, int size)
             t = t->next;
         }
     }
-    return 0;
+    return status;
 }

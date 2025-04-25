@@ -39,8 +39,8 @@ typedef struct s_env
 
 typedef struct s_gb
 {
-	void		*ptr;
-	struct s_gb	*next;
+    void		*ptr;
+    struct s_gb	*next;
 }t_gb;
 
 typedef struct {
@@ -52,10 +52,12 @@ typedef struct {
 typedef struct {
     t_command commands[MAX_COMMANDS];
     int count;
+    int status;
 } t_pipeline;
-
+	
 typedef struct
 {
+    int input;
     int in;
     int out;
     int fdt;
@@ -78,10 +80,11 @@ t_command parse_command(char *input);
 char *get_last_dir();
 char *ft_path(int status);
 char **add_string_on_the_head_of_double_array(char *arr1, char **arr2);
-char *get_path(char *cmd, char **env);
-int ft_execve(char *cmd, char **params, char **env);
+char *get_path(char *cmd, t_env *e);
+int ft_execve(char *cmd, char **params, char **env, t_env e);
+int ft_execve_with_pipes(char *cmd, char **params, char **env, t_env e);
 void add_old_pwd(t_env **e);
 int commands(t_env **e, t_pipeline pipe, char **env, int flag);
-void handel_pipes(t_env **e, t_pipeline pipe, char **env);
+int handel_pipes(t_env **e, t_pipeline pipe, char **env);
 
 #endif
