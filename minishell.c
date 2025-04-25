@@ -193,47 +193,56 @@ char *get_path(char *cmd, t_env *e)
 
 int ft_execve(char *cmd, char **params, char **env, t_env e)
 {
-	int pid = fork();
-	char **str = NULL;
-	int status;
+    pid_t pid;
+    char *sh_argv[3];
 
-	if (pid == 0)
-	{
-		if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
-		{
-			if (access(cmd, X_OK) == 0)
-			{
-			}
-			else
-			{
-				printf("bash: %s: No such file or directory\n", cmd);
-				exit(127);
-			}
-		}
-		char *path = get_path(cmd, &e);
-		if (!path)
-		{
-			fprintf(stderr, "Command not found: %s\n", cmd);
-			exit(127);
-		}
-		str = add_string_on_the_head_of_double_array(cmd, params);
-		execve(path, str, env);
-		perror("execve");
-		exit(1);
-	}
-	else if (pid < 0)
-	{
-		perror("fork");
-		exit(EXIT_FAILURE);
-	}
-	else
-	{
-		wait(&status);
-		if (WIFEXITED(status))
-			return WEXITSTATUS(status);
-		return 1;
-	}
+    pid = fork();
+    if (pid == 0)
+    {
+        if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
+        {
+            if (access(cmd, X_OK) == 0)
+            {
+                execve(cmd, params, env);
+            }
+            else
+            {
+                fprintf(stderr, "bash: %s: No such file or directory\n", cmd);
+                exit(127);
+            }
+        }
+        char *path = get_path(cmd, &e);
+        if (!path)
+        {
+            fprintf(stderr, "bash: command not found: %s\n", cmd);
+            exit(127);
+        }
+        execve(path, params, env);
+        if (errno == ENOEXEC)
+        {
+            sh_argv[0] = "/bin/sh";
+            sh_argv[1] = cmd;
+            sh_argv[2] = NULL;
+            execve("/bin/sh", sh_argv, env);
+        }
+        perror("execve");
+        exit(1);
+    }
+    else if (pid < 0)
+    {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        int status;
+        wait(&status);
+        if (WIFEXITED(status))
+            return WEXITSTATUS(status);
+        return 1;
+    }
 }
+
 
 int ft_execve_with_pipes(char *cmd, char **params, char **env, t_env e)
 {
@@ -289,7 +298,8 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 			status = cd(e, pipe.commands[0].params, pipe.commands[0].argc);
 		else if (ft_strncmp(pipe.commands[0].command, "pwd", 3) == 0 && strlen(pipe.commands[0].command) == 3)
 			status = pwd(*e);
-		status = ft_execve(pipe.commands[0].command, pipe.commands[0].params, env, **e);
+		else
+			status = ft_execve(pipe.commands[0].command, pipe.commands[0].params, env, **e);
 	}
 	else
 	{
@@ -305,7 +315,8 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 			status = cd(e, pipe.commands[flag].params, pipe.commands[0].argc);
 		else if (ft_strncmp(pipe.commands[flag].command, "pwd", 3) == 0 && strlen(pipe.commands[flag].command) == 3)
 			status = pwd(*e);
-		status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env, **e);
+		else
+			status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env, **e);
 	}
 	return status;
 }
@@ -388,6 +399,8 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 	else
 		copy_env = set_defaults(&e, 1);
 	add_old_pwd(&e);
+	signal(SIGINT, sigint_handler);
+	signal(SIGQUIT, SIG_IGN);
 	while (1)
 	{
 		sleeper();

@@ -65,7 +65,7 @@ typedef struct
     int i;
 }t_fd;
 
-
+void sigint_handler(int sig);
 void print_array(char **arr);
 void	*ft_malloc(ssize_t len);
 int cd(t_env **e, char **str, int size);
