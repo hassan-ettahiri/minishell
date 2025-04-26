@@ -1,5 +1,7 @@
 #include "minishell.h"
 
+int flag_sig = 0;
+
 void print_array(char **arr)
 {
 	if (!arr)
@@ -190,59 +192,82 @@ char *get_path(char *cmd, t_env *e)
 	}
 	return path;
 }
+void handler_quit(int sig)
+{
+	if (sig == SIGQUIT)
+	{
+		write(1, "Quit (core dumped)\n", 20);
+		exit(131);
+	}
+}
 
 int ft_execve(char *cmd, char **params, char **env, t_env e)
 {
-    pid_t pid;
-    char *sh_argv[3];
+	pid_t pid;
+	char *sh_argv[3];
 
-    pid = fork();
-    if (pid == 0)
-    {
-        if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
-        {
-            if (access(cmd, X_OK) == 0)
+	pid = fork();
+	if (pid == 0)
+	{
+		flag_sig = 0;
+		signal(SIGQUIT, SIG_DFL);
+		signal(SIGINT, SIG_DFL);
+		if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
+		{
+			if (access(cmd, X_OK) == 0)
+			{
+				execve(cmd, params, env);
+			}
+			else
+			{
+				fprintf(stderr, "bash: %s: No such file or directory\n", cmd);
+				exit(127);
+			}
+		}
+		char *path = get_path(cmd, &e);
+		if (!path)
+		{
+			fprintf(stderr, "bash: command not found: %s\n", cmd);
+			exit(127);
+		}
+		execve(path, params, env);
+		if (errno == ENOEXEC)
+		{
+			sh_argv[0] = "/bin/sh";
+			sh_argv[1] = cmd;
+			sh_argv[2] = NULL;
+			execve("/bin/sh", sh_argv, env);
+		}
+		perror("execve");
+		exit(1);
+	}
+	else if (pid < 0)
+	{
+		perror("fork");
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		int status;
+		waitpid(pid ,&status, 0);
+		if (WIFSIGNALED(status))
+		{
+			if (WTERMSIG(status) == SIGQUIT)
+			{
+				write(1, "Quit (core dumped)\n", 20);
+				return 131;
+			}
+			else if (WTERMSIG(status) == SIGINT)
             {
-                execve(cmd, params, env);
+                write(1, "\n", 1);
+                return 130;
             }
-            else
-            {
-                fprintf(stderr, "bash: %s: No such file or directory\n", cmd);
-                exit(127);
-            }
-        }
-        char *path = get_path(cmd, &e);
-        if (!path)
-        {
-            fprintf(stderr, "bash: command not found: %s\n", cmd);
-            exit(127);
-        }
-        execve(path, params, env);
-        if (errno == ENOEXEC)
-        {
-            sh_argv[0] = "/bin/sh";
-            sh_argv[1] = cmd;
-            sh_argv[2] = NULL;
-            execve("/bin/sh", sh_argv, env);
-        }
-        perror("execve");
-        exit(1);
-    }
-    else if (pid < 0)
-    {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        int status;
-        wait(&status);
-        if (WIFEXITED(status))
-            return WEXITSTATUS(status);
-        return 1;
-    }
+		}
+		if (WIFEXITED(status))
+			return WEXITSTATUS(status);
+		return 1;
+	}
 }
-
 
 int ft_execve_with_pipes(char *cmd, char **params, char **env, t_env e)
 {
@@ -389,6 +414,7 @@ char **ft_export(t_env **e, char **env, int flag)
 int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char **env)
 {
 	char *line = NULL;
+	flag_sig = 0;
 	write(1, "\033[H\033[J", 6);
 	t_pipeline pipe = {0};
 	t_env *e = NULL;
@@ -403,9 +429,11 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 	signal(SIGQUIT, SIG_IGN);
 	while (1)
 	{
+		flag_sig = 1;
 		sleeper();
 		s = ft_path(pipe.status);
 		line = readline(s);
+		flag_sig = 0;
 		if (!line)
 		{
 			write(1, " exit\n", 6);

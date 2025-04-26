@@ -17,6 +17,8 @@
 #define MAX_COMMANDS 10
 #define SLEEP 10000000
 
+extern int	flag_sig;
+
 typedef struct s_design
 {
     char *color_start;
@@ -66,6 +68,7 @@ typedef struct
 }t_fd;
 
 void sigint_handler(int sig);
+void sigint_handler_child(int sig);
 void print_array(char **arr);
 void	*ft_malloc(ssize_t len);
 int cd(t_env **e, char **str, int size);

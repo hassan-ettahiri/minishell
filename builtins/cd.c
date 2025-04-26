@@ -49,11 +49,8 @@ int handle_getcwd_failure(t_env **e, char *str, char *prev_pwd)
     printf("cd: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory\n");
     set_oldpwd(e, prev_pwd);
     char *fallback_path = NULL;
-    if (strcmp(str, "..") == 0)
-        fallback_path = ft_strjoin(prev_pwd, "/..");
-    else
-        fallback_path = ft_strjoin(prev_pwd, "/.");
-    chdir(str);
+    prev_pwd = ft_strjoin(prev_pwd, "/");
+    fallback_path = ft_strjoin(prev_pwd, str);
     set_pwd(e, fallback_path);
     return 0;
 }
@@ -65,7 +62,7 @@ int add_oldpwd_and_chdir(t_env **e, char *str, int flag)
         str = get_env_value(*e, "OLDPWD");
 
     char *cwd = getcwd(NULL, 0);
-    if (!cwd && (strcmp(str, "..") == 0 || strcmp(str, ".") == 0))
+    if (!cwd && (chdir(str) == 0))
         return handle_getcwd_failure(e, str, prev_pwd);
     free(cwd);
     if (chdir(str) == 0) {

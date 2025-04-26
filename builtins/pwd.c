@@ -15,7 +15,17 @@ char *get_cwd_in_env(t_env *e)
 
 int pwd(t_env *e)
 {
-    char *c = get_cwd_in_env(e);
-    printf("%s\n", c);
+    char *c = getcwd(NULL, 0);
+    if(c != NULL){
+        write(1, c, ft_strlen(c));
+        write(1, "\n", 1);
+    }
+    else
+    {
+        free(c);
+        c = get_cwd_in_env(e);
+        write(1, c, ft_strlen(c));
+        write(1, "\n", 1);
+    }
     return 0;
 }
