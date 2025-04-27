@@ -205,6 +205,7 @@ int ft_execve(char *cmd, char **params, char **env, t_env e)
 {
 	pid_t pid;
 	char *sh_argv[3];
+	char **str;
 
 	pid = fork();
 	if (pid == 0)
@@ -230,7 +231,8 @@ int ft_execve(char *cmd, char **params, char **env, t_env e)
 			fprintf(stderr, "bash: command not found: %s\n", cmd);
 			exit(127);
 		}
-		execve(path, params, env);
+		str = add_string_on_the_head_of_double_array(cmd, params);
+		execve(path, str, env);
 		if (errno == ENOEXEC)
 		{
 			sh_argv[0] = "/bin/sh";
@@ -449,6 +451,7 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 			else
 				pipe.status = handel_pipes(&e, pipe, copy_env);
 		}
+		printf("\nstatus: %d\n", pipe.status);
 	}
 	return 0;
 }

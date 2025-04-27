@@ -78,23 +78,42 @@ int handel_pipes(t_env **e, t_pipeline pipel, char **env)
 		}
 		child[fd.i] = fork();
 		if (child[fd.i] == 0)
+		{
+			flag_sig = 0;
+			signal(SIGQUIT, SIG_DFL);
+			signal(SIGINT, SIG_DFL);
 			pipe_execution(&fd, pipel, env, e);
+		}
 		else
 		{
-			if(fd.fdt != -1)
+			if (fd.fdt != -1)
 				close(fd.fdt);
-			if(fd.i < pipel.count - 1){
+			if (fd.i < pipel.count - 1)
+			{
 				close(fd.fds[1]);
 				fd.fdt = fd.fds[0];
 			}
 		}
 		fd.i++;
 	}
-	if(fd.fdt != -1)
+	if (fd.fdt != -1)
 		close(fd.fdt);
 	for (i = 0; i < pipel.count; i++)
 	{
 		waitpid(child[i], &pipel.status, 0);
+		if (WIFSIGNALED(pipel.status))
+		{
+			if (WTERMSIG(pipel.status) == SIGQUIT)
+			{
+				write(1, "Quit (core dumped)\n", 20);
+				return 131;
+			}
+			else if (WTERMSIG(pipel.status) == SIGINT)
+			{
+				write(1, "\n", 1);
+				return 130;
+			}
+		}
 		if (WIFEXITED(pipel.status))
 			pipel.status = WEXITSTATUS(pipel.status);
 	}
