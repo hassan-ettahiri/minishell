@@ -283,19 +283,19 @@ int ft_execve_with_pipes(char *cmd, char **params, char **env, t_env e)
 		else
 		{
 			printf("bash: %s: No such file or directory\n", cmd);
-			exit(127);
+			return 127;
 		}
 	}
 	char *path = get_path(cmd, &e);
 	if (!path)
 	{
 		fprintf(stderr, "Command not found: %s\n", cmd);
-		exit(127);
+		return 127;
 	}
 	str = add_string_on_the_head_of_double_array(cmd, params);
 	execve(path, str, env);
 	perror("execve");
-	exit(1);
+	return 0;
 }
 
 void add_old_pwd(t_env **e)
@@ -335,11 +335,11 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 		if (ft_strncmp(pipe.commands[flag].command, "env", 3) == 0 && strlen(pipe.commands[flag].command) == 3)
 			status = ft_env(*e);
 		else if (ft_strncmp(pipe.commands[flag].command, "export", 6) == 0 && strlen(pipe.commands[flag].command) == 6)
-			status = export(e, pipe.commands[flag].params, pipe.commands[0].argc);
+			status = export(e, pipe.commands[flag].params, pipe.commands[flag].argc);
 		else if (ft_strncmp(pipe.commands[flag].command, "unset", 5) == 0 && strlen(pipe.commands[flag].command) == 5)
 			status = unset(e, pipe.commands[flag].params);
 		else if (ft_strncmp(pipe.commands[flag].command, "cd", 2) == 0 && strlen(pipe.commands[flag].command) == 2)
-			status = cd(e, pipe.commands[flag].params, pipe.commands[0].argc);
+			status = cd(e, pipe.commands[flag].params, pipe.commands[flag].argc);
 		else if (ft_strncmp(pipe.commands[flag].command, "pwd", 3) == 0 && strlen(pipe.commands[flag].command) == 3)
 			status = pwd(*e);
 		else
@@ -431,6 +431,8 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 	signal(SIGQUIT, SIG_IGN);
 	while (1)
 	{
+		if(isatty(0) != 1)
+			return 0;
 		flag_sig = 1;
 		sleeper();
 		s = ft_path(pipe.status);

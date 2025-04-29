@@ -52,6 +52,9 @@ void pipe_execution(t_fd *fd, t_pipeline pipe, char **env, t_env **e)
 		dup2(fd->out, STDOUT_FILENO);
 		close(fd->out);
 	}
+	// printf("\n\n\n\n");
+	// print_array(env);
+	// printf("\n\n\n\n");
 	status = commands(e, pipe, env, fd->i);
 	exit(status);
 }
@@ -103,23 +106,17 @@ int handel_pipes(t_env **e, t_pipeline pipel, char **env)
 		waitpid(child[i], &pipel.status, 0);
 		if (WIFSIGNALED(pipel.status))
 		{
-			if (WTERMSIG(pipel.status) == SIGQUIT)
-			{
-				write(1, "Quit (core dumped)\n", 20);
-				return 131;
-			}
-			else if (WTERMSIG(pipel.status) == SIGINT)
-			{
+			if (WTERMSIG(pipel.status) == SIGINT)
 				write(1, "\n", 1);
-				return 130;
-			}
 		}
 		if (WIFEXITED(pipel.status))
 			pipel.status = WEXITSTATUS(pipel.status);
+
+		fprintf(stderr, "\n------------ %d -------------\n", pipel.status);
 	}
 	dup2(fd.input, STDIN_FILENO);
 	close(fd.input);
-	return 0;
+	return pipel.status;
 }
 
 /*
