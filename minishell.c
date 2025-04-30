@@ -196,7 +196,6 @@ void handler_quit(int sig)
 {
 	if (sig == SIGQUIT)
 	{
-		write(1, "Quit (core dumped)\n", 20);
 		exit(131);
 	}
 }
@@ -251,19 +250,18 @@ int ft_execve(char *cmd, char **params, char **env, t_env e)
 	else
 	{
 		int status;
-		waitpid(pid ,&status, 0);
+		waitpid(pid, &status, 0);
 		if (WIFSIGNALED(status))
 		{
 			if (WTERMSIG(status) == SIGQUIT)
 			{
-				write(1, "Quit (core dumped)\n", 20);
 				return 131;
 			}
 			else if (WTERMSIG(status) == SIGINT)
-            {
-                write(1, "\n", 1);
-                return 130;
-            }
+			{
+				write(1, "\n", 1);
+				return 130;
+			}
 		}
 		if (WIFEXITED(status))
 			return WEXITSTATUS(status);
@@ -313,7 +311,7 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 
 	if (flag == -1)
 	{
-		if (pipe.commands[flag].command == NULL)
+		if (pipe.commands[0].command == NULL)
 			return 0;
 		if (ft_strncmp(pipe.commands[0].command, "env", 3) == 0 && strlen(pipe.commands[0].command) == 3)
 			status = ft_env(*e);
@@ -343,7 +341,10 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 		else if (ft_strncmp(pipe.commands[flag].command, "pwd", 3) == 0 && strlen(pipe.commands[flag].command) == 3)
 			status = pwd(*e);
 		else
+		{
 			status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env, **e);
+			fprintf(stderr, "\n\n------[ %d ]-------\n\n", status);
+		}
 	}
 	return status;
 }
@@ -431,7 +432,7 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 	signal(SIGQUIT, SIG_IGN);
 	while (1)
 	{
-		if(isatty(0) != 1)
+		if (isatty(0) != 1)
 			return 0;
 		flag_sig = 1;
 		sleeper();

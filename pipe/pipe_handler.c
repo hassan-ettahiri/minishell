@@ -1,86 +1,79 @@
 #include "../minishell.h"
 
-void redfirst(t_fd *fd)
-{
-	fd->in = dup(STDIN_FILENO);
-	if (pipe(fd->fds) == -1)
-		exit(1);
-	fd->out = fd->fds[1];
-	fd->fdt = fd->fds[0];
-}
+// void redfirst(t_fd *fd)
+// {
+// 	fd->in = dup(STDIN_FILENO);
+// 	if (pipe(fd->fds) == -1)
+// 		exit(1);
+// 	fd->out = fd->fds[1];
+// 	fd->fdt = fd->fds[0];
+// }
 
-void rbetween(t_fd *fd)
-{
-	fd->in = fd->fdt;
-	if (pipe(fd->fds) == -1)
-		exit(1);
-	fd->out = fd->fds[1];
-	fd->fdt = fd->fds[0];
-}
+// void rbetween(t_fd *fd)
+// {
+// 	fd->in = fd->fdt;
+// 	if (pipe(fd->fds) == -1)
+// 		exit(1);
+// 	fd->out = fd->fds[1];
+// 	fd->fdt = fd->fds[0];
+// }
 
-void redlast(t_fd *fd)
-{
-	fd->in = fd->fdt;
-	fd->out = open("/dev/stdout", O_WRONLY);
-}
+// void redlast(t_fd *fd)
+// {
+// 	fd->in = fd->fdt;
+// 	fd->out = open("/dev/stdout", O_WRONLY);
+// }
 
 void pipe_execution(t_fd *fd, t_pipeline pipe, char **env, t_env **e)
 {
 	int status;
-	fd->out = STDOUT_FILENO;
-	fd->in = STDIN_FILENO;
+
 	if (fd->fdt != -1)
 	{
 		dup2(fd->fdt, STDIN_FILENO);
 		close(fd->fdt);
-		fd->in = fd->fdt;
 	}
 	if (fd->i < pipe.count - 1)
 	{
 		close(fd->fds[0]);
 		dup2(fd->fds[1], STDOUT_FILENO);
 		close(fd->fds[1]);
-		fd->out = fd->fds[1];
 	}
-	if (fd->in != STDIN_FILENO)
-	{
-		dup2(fd->in, STDIN_FILENO);
-		close(fd->in);
-	}
-	if (fd->out != STDOUT_FILENO)
-	{
-		dup2(fd->out, STDOUT_FILENO);
-		close(fd->out);
-	}
-	// printf("\n\n\n\n");
-	// print_array(env);
-	// printf("\n\n\n\n");
 	status = commands(e, pipe, env, fd->i);
+	fprintf(stderr, "\n\n------[ %d ]-------\n\n", status);
 	exit(status);
 }
 
 int handel_pipes(t_env **e, t_pipeline pipel, char **env)
 {
 	t_fd fd;
-	pid_t *child = ft_malloc(sizeof(pid_t) * pipel.count);
-	if (!child)
-		return (1);
+	pid_t *child;
+	int i;
+
 	fd.i = 0;
 	fd.fdt = -1;
-	int i = 0;
 	fd.input = dup(STDIN_FILENO);
+	child = ft_malloc(sizeof(pid_t) * pipel.count);
+	if (!child)
+		return (1);
+
 	while (fd.i < pipel.count)
 	{
-		if (i < pipel.count - 1)
+		if (fd.i < pipel.count - 1)
 		{
 			if (pipe(fd.fds) == -1)
 			{
 				perror("pipe");
-				return 1;
+				return (1);
 			}
 		}
 		child[fd.i] = fork();
-		if (child[fd.i] == 0)
+		if (child[fd.i] < 0)
+		{
+			perror("fork");
+			return (1);
+		}
+		else if (child[fd.i] == 0)
 		{
 			flag_sig = 0;
 			signal(SIGQUIT, SIG_DFL);
@@ -106,13 +99,26 @@ int handel_pipes(t_env **e, t_pipeline pipel, char **env)
 		waitpid(child[i], &pipel.status, 0);
 		if (WIFSIGNALED(pipel.status))
 		{
-			if (WTERMSIG(pipel.status) == SIGINT)
+			if (WTERMSIG(pipel.status) == SIGQUIT)
+			{
+				dup2(fd.input, STDIN_FILENO);
+				close(fd.input);
+				pipel.status = 131;
+			}
+			else if (WTERMSIG(pipel.status) == SIGINT)
+			{
 				write(1, "\n", 1);
+				dup2(fd.input, STDIN_FILENO);
+				close(fd.input);
+				pipel.status = 130;
+			}
 		}
 		if (WIFEXITED(pipel.status))
-			pipel.status = WEXITSTATUS(pipel.status);
-
-		fprintf(stderr, "\n------------ %d -------------\n", pipel.status);
+		{
+			dup2(fd.input, STDIN_FILENO);
+			close(fd.input);
+			return WEXITSTATUS(pipel.status);
+		}
 	}
 	dup2(fd.input, STDIN_FILENO);
 	close(fd.input);

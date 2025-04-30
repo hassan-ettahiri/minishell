@@ -158,15 +158,15 @@ void print_export(char *s1, char *s2, int flag)
 {
     if (flag == 1)
     {
-        write(1, "declare -x ", 12);
+        write(1, "declare -x ", 11);
         write(1, s1, ft_strlen(s1));
-        write(1, "=\"",3);
+        write(1, "=\"", 2);
         write(1, s2, ft_strlen(s2));
-        write(1, "\"\n", 3);
+        write(1, "\"\n", 2);
     }
     else
     {
-        write(1, "declare -x ", 12);
+        write(1, "declare -x ", 11);
         write(1, s1, ft_strlen(s1));
         write(1, "\n", 1);
     }
@@ -187,11 +187,10 @@ int export(t_env **head, char **env, int size)
     {
         t_env *copy = copy_list(*head);
         sort_list(copy);
-        t_env *t = copy;
-        while (t)
+        while (copy)
         {
-            print_export(t->key, t->value, t->equl_exist);
-            t = t->next;
+            print_export(copy->key, copy->value, copy->equl_exist);
+            copy = copy->next;
         }
     }
     return status;
