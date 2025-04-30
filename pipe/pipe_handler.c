@@ -40,7 +40,6 @@ void pipe_execution(t_fd *fd, t_pipeline pipe, char **env, t_env **e)
 		close(fd->fds[1]);
 	}
 	status = commands(e, pipe, env, fd->i);
-	fprintf(stderr, "\n\n------[ %d ]-------\n\n", status);
 	exit(status);
 }
 
@@ -101,23 +100,16 @@ int handel_pipes(t_env **e, t_pipeline pipel, char **env)
 		{
 			if (WTERMSIG(pipel.status) == SIGQUIT)
 			{
-				dup2(fd.input, STDIN_FILENO);
-				close(fd.input);
 				pipel.status = 131;
 			}
 			else if (WTERMSIG(pipel.status) == SIGINT)
 			{
-				write(1, "\n", 1);
-				dup2(fd.input, STDIN_FILENO);
-				close(fd.input);
 				pipel.status = 130;
 			}
 		}
 		if (WIFEXITED(pipel.status))
 		{
-			dup2(fd.input, STDIN_FILENO);
-			close(fd.input);
-			return WEXITSTATUS(pipel.status);
+			pipel.status = WEXITSTATUS(pipel.status);
 		}
 	}
 	dup2(fd.input, STDIN_FILENO);

@@ -67,7 +67,6 @@ void parse_input(const char *input, t_pipeline *pipeline)
 		char *arg;
 		int param_index = 0;
 
-		// Skip empty tokens until we find the command
 		while ((arg = strsep(&arg_rest, " \t")) != NULL)
 		{
 			if (*arg == '\0')
@@ -76,7 +75,6 @@ void parse_input(const char *input, t_pipeline *pipeline)
 			break;
 		}
 
-		// The rest are parameters
 		while ((arg = strsep(&arg_rest, " \t")) != NULL)
 		{
 			if (*arg == '\0')
@@ -343,7 +341,6 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 		else
 		{
 			status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env, **e);
-			fprintf(stderr, "\n\n------[ %d ]-------\n\n", status);
 		}
 	}
 	return status;
@@ -445,7 +442,9 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 			ft_malloc(-1);
 			exit(0);
 		}
+
 		parse_input(line, &pipe);
+		
 		if (ft_strlen(line) != 0)
 		{
 			add_history(line);

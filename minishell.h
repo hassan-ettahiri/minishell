@@ -12,6 +12,7 @@
 #include "libft/libft.h"
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #define MAX_ARGS 10
 #define MAX_COMMANDS 10
