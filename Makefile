@@ -1,14 +1,15 @@
 CC = cc
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = #-Wall -Wextra -Werror
 LIBFT = libft.a
 NAME = minishell
 
 READLINE_INC = -I$(HOME)/.local/include
 READLINE_LIB = -L$(HOME)/.local/lib -lreadline
 
-SRC =	./builtins/cd.c ./builtins/dollar.c ./builtins/pwd.c\
+SRC =	./builtins/cd.c ./builtins/dollar.c ./builtins/pwd.c ./builtins/echo.c\
 		./builtins/unset.c ./builtins/env.c ./builtins/export.c ./minishell.c\
-		./pipe/pipe_handler.c ./signal_handle/signal_handler.c
+		./pipe/pipe_handler.c ./signal_handle/signal_handler.c ./builtins/exit.c\
+		check_errors.c  enumization.c expanding.c ft_unquoting.c heredoc.c joining.c piping.c tokenizer.c 
 OBJS = ${SRC:.c=.o}
 LIBFT_PATH = ./libft
 

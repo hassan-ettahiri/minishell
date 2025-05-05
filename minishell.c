@@ -1,5 +1,116 @@
 #include "minishell.h"
 
+void ft_merge(t_tokens *tok, t_pipeline *pipe)
+{
+	pipe->count = tok->length;
+	int i = 0;
+	int k = 0;
+
+	while (i < tok->length)
+	{
+		size_t j = 0;
+		ft_init(&pipe->commands[i].infile);
+		ft_init(&pipe->commands[i].outfile);
+		ft_init(&pipe->commands[i].in);
+		ft_init(&pipe->commands[i].out);
+		pipe->commands[i].argc = 0;
+		k = 0;
+		while (j < tok->TWOD_joined[i].size)
+		{
+			if (tok->TWOD_categories[i].arr[j][1] == 'O')
+			{
+				if (tok->TWOD_categories[i].arr[j + 1][1] == 'S')
+				{
+					ft_add(&pipe->commands[i].outfile, tok->TWOD_joined[i].arr[j + 2]);
+					j += 2;
+				}
+				else
+				{
+					ft_add(&pipe->commands[i].outfile, tok->TWOD_joined[i].arr[j + 1]);
+					j++;
+				}
+				ft_add(&pipe->commands[i].out, ft_substrr("-", 0, 0));
+				j++;
+				continue;
+			}
+			if (tok->TWOD_categories[i].arr[j][1] == 'I')
+			{
+				if (tok->TWOD_categories[i].arr[j + 1][1] == 'S')
+				{
+					ft_add(&pipe->commands[i].infile, tok->TWOD_joined[i].arr[j + 2]);
+					j += 2;
+				}
+				else
+				{
+					ft_add(&pipe->commands[i].infile, tok->TWOD_joined[i].arr[j + 1]);
+					j++;
+				}
+				ft_add(&pipe->commands[i].in, ft_substrr("-", 0, 0));
+				j++;
+				continue;
+			}
+			if (tok->TWOD_categories[i].arr[j][1] == 'H')
+			{
+				if (tok->TWOD_categories[i].arr[j + 1][1] == 'S')
+				{
+					ft_add(&pipe->commands[i].infile, tok->TWOD_joined[i].arr[j + 2]);
+					j += 2;
+				}
+				else
+				{
+					ft_add(&pipe->commands[i].infile, tok->TWOD_joined[i].arr[j + 1]);
+					j++;
+				}
+				ft_add(&pipe->commands[i].in, ft_substrr("+", 0, 0));
+				j++;
+				continue;
+			}
+			if (tok->TWOD_categories[i].arr[j][1] == 'A')
+			{
+				if (tok->TWOD_categories[i].arr[j + 1][1] == 'S')
+				{
+					ft_add(&pipe->commands[i].outfile, tok->TWOD_joined[i].arr[j + 2]);
+					j += 2;
+				}
+				else
+				{
+					ft_add(&pipe->commands[i].outfile, tok->TWOD_joined[i].arr[j + 1]);
+					j++;
+				}
+				ft_add(&pipe->commands[i].out, ft_substrr("+", 0, 0));
+				j++;
+				continue;
+			}
+			if (tok->TWOD_categories[i].arr[j][1] == 'S')
+			{
+				j++;
+				continue;
+			}
+			if (k == 0)
+				pipe->commands[i].command = tok->TWOD_joined[i].arr[j];
+			else
+				pipe->commands[i].params[pipe->commands[i].argc] = tok->TWOD_joined[i].arr[j];
+			if (k != 0)
+				pipe->commands[i].argc++;
+			k = 1;
+			j++;
+		}
+		// j = 0;
+		// while (j < pipe->commands[i].infile.size)
+		// {
+		// 	printf("%s %s: infile\n", pipe->commands[i].infile.arr[j], pipe->commands[i].in.arr[j]);
+		// 	j++;
+		// }
+		// j = 0;
+		// while (j < pipe->commands[i].outfile.size)
+		// {
+		// 	printf("%s %s: outfile\n", pipe->commands[i].outfile.arr[j], pipe->commands[i].out.arr[j]);
+		// 	j++;
+		// }
+		i++;
+	}
+}
+
 int flag_sig = 0;
 
 void print_array(char **arr)
@@ -15,92 +126,13 @@ void print_array(char **arr)
 	}
 }
 
-int count_params(char *input)
-{
-	int count = 0;
-	char *tmp = ft_strdup(input);
-	char *token = strtok(tmp, " ");
-	token = strtok(NULL, " ");
-
-	while (token)
-	{
-		count++;
-		token = strtok(NULL, " ");
-	}
-	return count;
-}
-
-char *strdup_safe(const char *s)
-{
-	char *d = malloc(strlen(s) + 1);
-	if (d)
-		strcpy(d, s);
-	return d;
-}
-
-void trim(char *str)
-{
-	char *end;
-	while (isspace((unsigned char)*str))
-		str++;
-	if (*str == 0)
-		return;
-	end = str + strlen(str) - 1;
-	while (end > str && isspace((unsigned char)*end))
-		end--;
-	*(end + 1) = 0;
-}
-
-void parse_input(const char *input, t_pipeline *pipeline)
-{
-	char *input_copy = strdup_safe(input);
-	char *rest = input_copy;
-	char *segment;
-	int cmd_index = 0;
-
-	while ((segment = strsep(&rest, "|")) != NULL && cmd_index < MAX_COMMANDS)
-	{
-		trim(segment);
-
-		t_command *cmd = &pipeline->commands[cmd_index];
-		char *arg_rest = segment;
-		char *arg;
-		int param_index = 0;
-
-		while ((arg = strsep(&arg_rest, " \t")) != NULL)
-		{
-			if (*arg == '\0')
-				continue;
-			cmd->command = strdup_safe(arg);
-			break;
-		}
-
-		while ((arg = strsep(&arg_rest, " \t")) != NULL)
-		{
-			if (*arg == '\0')
-				continue;
-			if (param_index < MAX_ARGS)
-			{
-				cmd->params[param_index++] = strdup_safe(arg);
-			}
-		}
-
-		cmd->params[param_index] = NULL;
-		cmd->argc = param_index;
-		cmd_index++;
-	}
-
-	pipeline->count = cmd_index;
-	free(input_copy);
-}
-
 char *get_last_dir()
 {
 	char *cwd = getcwd(NULL, 0);
 	if (!cwd)
 		return NULL;
 
-	char *last_slash = strrchr(cwd, '/');
+	char *last_slash = ft_strrchr(cwd, '/');
 	char *last_dir;
 
 	if (last_slash && *(last_slash + 1) != '\0')
@@ -116,16 +148,13 @@ char *ft_path(int status)
 	t_design s;
 
 	s.cwd = get_last_dir();
-	s.color_start = "\001\033[1;36m\002";
-	s.color_end = "\001\033[0m\002";
-	if (status == 0)
-		s.temp = ft_strdup("\033[32m➜  \033[0m");
-	else
-		s.temp = ft_strdup("\033[31m➜  \033[0m");
-	s.temp1 = ft_strjoin(s.color_start, s.cwd);
-	s.temp2 = ft_strjoin(s.temp1, s.color_end);
+	s.temp1 = ft_strjoin(S_BLUE, s.cwd);
+	s.temp2 = ft_strjoin(s.temp1, E_BLUE);
 	s.temp3 = ft_strjoin(s.temp2, " ");
-	s.prompt = ft_strjoin(s.temp, s.temp3);
+	if (status == 0)
+		s.prompt = ft_strjoin(GREEN, s.temp3);
+	else
+		s.prompt = ft_strjoin(RED, s.temp3);
 	return s.prompt;
 }
 
@@ -198,7 +227,7 @@ void handler_quit(int sig)
 	}
 }
 
-int ft_execve(char *cmd, char **params, char **env, t_env e)
+int ft_execve(t_pipeline pipe, char **env, t_env e)
 {
 	pid_t pid;
 	char *sh_argv[3];
@@ -210,30 +239,30 @@ int ft_execve(char *cmd, char **params, char **env, t_env e)
 		flag_sig = 0;
 		signal(SIGQUIT, SIG_DFL);
 		signal(SIGINT, SIG_DFL);
-		if (ft_strncmp(cmd, "./", 2) == 0 || cmd[0] == '/')
+		if (ft_strncmp(pipe.commands[0].command, "./", 2) == 0 || pipe.commands[0].command[0] == '/')
 		{
-			if (access(cmd, X_OK) == 0)
+			if (access(pipe.commands[0].command, X_OK) == 0)
 			{
-				execve(cmd, params, env);
+				execve(pipe.commands[0].command, pipe.commands[0].params, env);
 			}
 			else
 			{
-				fprintf(stderr, "bash: %s: No such file or directory\n", cmd);
+				fprintf(stderr, "bash: %s: No such file or directory\n", pipe.commands[0].command);
 				exit(127);
 			}
 		}
-		char *path = get_path(cmd, &e);
+		char *path = get_path(pipe.commands[0].command, &e);
 		if (!path)
 		{
-			fprintf(stderr, "bash: command not found: %s\n", cmd);
+			fprintf(stderr, "bash: command not found: %s\n", pipe.commands[0].command);
 			exit(127);
 		}
-		str = add_string_on_the_head_of_double_array(cmd, params);
+		str = add_string_on_the_head_of_double_array(pipe.commands[0].command, pipe.commands[0].params);
 		execve(path, str, env);
 		if (errno == ENOEXEC)
 		{
 			sh_argv[0] = "/bin/sh";
-			sh_argv[1] = cmd;
+			sh_argv[1] = pipe.commands[0].command;
 			sh_argv[2] = NULL;
 			execve("/bin/sh", sh_argv, env);
 		}
@@ -303,12 +332,98 @@ void add_old_pwd(t_env **e)
 	export(e, old_pwd, 1);
 }
 
+int open_and_dup(t_command commands, t_fd *fd)
+{
+	int i;
+
+	if (commands.infile.size != 0)
+	{
+		fd->input = dup(STDIN_FILENO);
+		i = 0;
+		while (i < commands.infile.size)
+		{
+			if (commands.in.arr[i][0] == '-')
+			{
+				fd->in = open(commands.infile.arr[i], O_RDONLY);
+				if (fd->in == -1)
+				{
+					printf("%s: No such file or directory\n", commands.infile.arr[i]);
+					dup2(fd->in, STDIN_FILENO);
+					close(fd->in);
+					return 1;
+				}
+			}
+			else
+			{
+				fd->in = ft_atoi(commands.infile.arr[i]);
+				if (fd->in == -1)
+				{
+					printf("heredoc: No such file or directory\n");
+					dup2(fd->in, STDIN_FILENO);
+					close(fd->in);
+					return 1;
+				}
+			}
+			i++;
+		}
+	}
+	if (commands.outfile.size != 0)
+	{
+		fd->output = dup(STDOUT_FILENO);
+		i = 0;
+		while (i < commands.outfile.size)
+		{
+			if (commands.out.arr[i][0] == '+')
+			{
+				fd->out = open(commands.outfile.arr[i], O_WRONLY | O_CREAT | O_APPEND, 0777);
+				if (fd->in == -1)
+				{
+					printf("%s: No such file or directory\n", commands.outfile.arr[i]);
+					dup2(fd->out, STDOUT_FILENO);
+					close(fd->in);
+					return 1;
+				}
+			}
+			else
+			{
+				fd->out = open(commands.outfile.arr[i], O_WRONLY | O_CREAT | O_TRUNC, 0777);
+				if (fd->in == -1)
+				{
+					printf("%s: No such file or directory\n", commands.outfile.arr[i]);
+					dup2(fd->out, STDOUT_FILENO);
+					close(fd->in);
+					return 1;
+				}
+			}
+			i++;
+		}
+	}
+	return 0;
+}
+
+void close_files(t_command commands, t_fd *fd)
+{
+	if (commands.infile.size != 0)
+	{
+		dup2(fd->input, STDIN_FILENO);
+		close(fd->input);
+	}
+	if (commands.outfile.size != 0)
+	{
+		dup2(fd->output, STDOUT_FILENO);
+		close(fd->output);
+	}
+}
+
 int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 {
 	int status = 0;
-
+	t_fd red;
 	if (flag == -1)
 	{
+		status = open_and_dup(pipe.commands[0], &red);
+		if (status == 1)
+			return 1;
 		if (pipe.commands[0].command == NULL)
 			return 0;
 		if (ft_strncmp(pipe.commands[0].command, "env", 3) == 0 && strlen(pipe.commands[0].command) == 3)
@@ -321,8 +436,13 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 			status = cd(e, pipe.commands[0].params, pipe.commands[0].argc);
 		else if (ft_strncmp(pipe.commands[0].command, "pwd", 3) == 0 && strlen(pipe.commands[0].command) == 3)
 			status = pwd(*e);
+		else if (ft_strncmp(pipe.commands[0].command, "echo", 4) == 0 && strlen(pipe.commands[0].command) == 4)
+			status = echo(pipe.commands[0].params, pipe.commands[0].argc);
+		else if (ft_strncmp(pipe.commands[0].command, "exit", 4) == 0 && strlen(pipe.commands[0].command) == 4)
+			exit_status(pipe.commands[0].params, pipe.commands[0].argc, pipe.status);
 		else
-			status = ft_execve(pipe.commands[0].command, pipe.commands[0].params, env, **e);
+			status = ft_execve(pipe, env, **e);
+		close_files(pipe.commands[0], &red);
 	}
 	else
 	{
@@ -338,6 +458,10 @@ int commands(t_env **e, t_pipeline pipe, char **env, int flag)
 			status = cd(e, pipe.commands[flag].params, pipe.commands[flag].argc);
 		else if (ft_strncmp(pipe.commands[flag].command, "pwd", 3) == 0 && strlen(pipe.commands[flag].command) == 3)
 			status = pwd(*e);
+		else if (ft_strncmp(pipe.commands[flag].command, "echo", 4) == 0 && strlen(pipe.commands[flag].command) == 4)
+			status = echo(pipe.commands[flag].params, pipe.commands[flag].argc);
+		else if (ft_strncmp(pipe.commands[flag].command, "exit", 4) == 0 && strlen(pipe.commands[flag].command) == 4)
+			status = exit_status(pipe.commands[flag].params, pipe.commands[flag].argc, pipe.status);
 		else
 		{
 			status = ft_execve_with_pipes(pipe.commands[flag].command, pipe.commands[flag].params, env, **e);
@@ -411,6 +535,19 @@ char **ft_export(t_env **e, char **env, int flag)
 	return str;
 }
 
+void free_STArray(STArray *array)
+{
+	if (!array || !array->arr)
+		return;
+	for (size_t i = 0; i < array->size; ++i)
+	{
+		array->arr[i] = NULL;
+	}
+	array->arr = NULL;
+	array->size = 0;
+	array->capacity = 0;
+}
+
 int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char **env)
 {
 	char *line = NULL;
@@ -420,6 +557,9 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 	t_env *e = NULL;
 	char **copy_env;
 	char *s = NULL;
+	int l = 0;
+	t_tokens tok;
+	pipe.status = 0;
 	if (env[0] != NULL)
 		copy_env = ft_export(&e, env, 1);
 	else
@@ -435,6 +575,7 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 		sleeper();
 		s = ft_path(pipe.status);
 		line = readline(s);
+		add_history(line);
 		flag_sig = 0;
 		if (!line)
 		{
@@ -442,18 +583,54 @@ int main(int ac __attribute__((unused)), char **av __attribute__((unused)), char
 			ft_malloc(-1);
 			exit(0);
 		}
+		tok = ft_tokenization(line);
+		if (tok.wrong)
+		{
+			printf("ERROR\n");
+			pipe.status = 1;
+			continue;
+		}
+		ft_enumization(&tok);
+		if (tok.wrong)
+		{
+			printf("ERROR\n");
+			pipe.status = 1;
+			continue;
+		}
+		ft_piping(&tok);
 
-		parse_input(line, &pipe);
-		
+		tok.e = e;
+		ft_expanding(&tok);
+		ft_joining(&tok);
+		ft_check_errors(&tok);
+		if (tok.wrong)
+		{
+			printf("ERROR\n");
+			pipe.status = 1;
+			continue;
+		}
+		ft_merge(&tok, &pipe);
+		int kk = 0;
 		if (ft_strlen(line) != 0)
 		{
-			add_history(line);
 			if (pipe.count == 1)
 				pipe.status = commands(&e, pipe, copy_env, -1);
 			else
 				pipe.status = handel_pipes(&e, pipe, copy_env);
 		}
 		printf("\nstatus: %d\n", pipe.status);
+		l = 0;
+		while (l < pipe.count)
+		{
+			pipe.commands[l].command = NULL;
+			int j = 0;
+			while (j < pipe.commands[l].argc)
+			{
+				pipe.commands[l].params[j] = NULL;
+				j++;
+			}
+			l++;
+		}
 	}
 	return 0;
 }

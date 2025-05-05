@@ -3,7 +3,6 @@
 int unset(t_env **head, char **str)
 {
     t_env *tmp;
-    t_env *p;
     int i;
 
     i = 0;
@@ -11,7 +10,6 @@ int unset(t_env **head, char **str)
     {
         while (*head && strcmp((*head)->key, str[i]) == 0)
         {
-            p = *head;
             *head = (*head)->next;
         }
 
@@ -20,7 +18,6 @@ int unset(t_env **head, char **str)
         {
             if (strcmp(tmp->next->key, str[i]) == 0)
             {
-                p = tmp->next;
                 tmp->next = tmp->next->next;
             }
             tmp = tmp->next;
